@@ -1,0 +1,301 @@
+\documentclass[fleqn]{article}
+\usepackage{fullpage}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage[margin=0.5in]{geometry}
+\usepackage{graphicx}
+%Path in Unix-like (Linux, OsX) format
+\graphicspath{ {/home/user/images/} }
+%You can also set multiple paths if the images are saved in more than one folder. For instance, if there are two folders named images1 and images2,
+% \graphicspath{ {images1/}{images2/} }</code>
+\newcommand{\prob}[1]{\textbf{Problem #1.}}
+\newcommand{\proof}{\textit{Proof.}\quad}
+
+
+\author{ \\ Xiangyu Hu}
+\title{PH240C Assignment 3}
+
+
+\begin{document}
+\maketitle
+\prob{1} \textbf{Conditonal distribution of multinomial counts}\\
+Process of thinking: \\
+First let's assume $X_{k} + X_{k'} = m$. When we are given that, we can reform the question and think of it as a binomial. Assume there are m trials, and we are interested in finding the probability $P(X_{k} = x_{k})$. The probability $$P(X_{k} = 1) = p$$, and the probability $$P(X_{k'} = 1) =1-p$$ \\
+Therefore, when given m, $X_{k} \sim binomial(m, p) $\\
+Originally from multinomial distribution, we know that the probability $P(X_{k} = 1) = \pi_{k}$, and the probability $P(X_{k'} = 1) =\pi_{k'}$. Therefore, we can get $$p = \frac{\pi_{k}}{\pi_{k} + \pi_{k'}} $$ $$1-p = \frac{\pi_{k'}}{\pi_{k} + \pi_{k'}} $$\\
+Since the conditional distribution of $X_{k}$ given $ X_{k} + X_{k'} $ is binomial$(m, p)$. The conditonal expected value of $X_{k}$ given $ X_{k} + X_{k'} $ is:
+\begin{align*}
+E(X_{k} | X_{k} + X_{k'}) &= mp\\
+&= (X_{k} + X_{k'}) \frac{\pi_{k}}{\pi_{k} + \pi_{k'}}\\
+\end{align*}
+\textbf{To derive it mathematically:}\\
+\begin{align*}
+P(X_{k} = x_{k} | X_{k} + X_{k'}) &= \frac{P(X_{k} = x_{k}, X_{k} + X_{k'} = m)}{P(X_{k} + X_{k'} = m)}\\
+&= \frac{P(X_{k} = x_{k}, X_{k'} = m - x_{k})}{P(X_{k} + X_{k'} = m)}\\
+&= \frac{(1)}{(2)}\\
+&= \frac{m!}{x_{k}!(m-x_{k})!} \frac{\pi_{k}^{x_{k}} \pi_{k'}^{m-x_{k}}}{(\pi_{k} + \pi_{k'})^m}\\
+&= \frac{m!}{x_{k}!(m-x_{k})!} \frac{\pi_{k}^{x_{k}}}{(\pi_{k} + \pi_{k'})^{x_{k}}} \frac{\pi_{k'}^{m-x_{k}}}{(\pi_{k} + \pi_{k'})^{m-x_{k}}}\\
+&= \frac{m!}{x_{k}!(m-x_{k})!} \left(\frac{\pi_{k}}{\pi_{k} + \pi_{k'}}\right)^{x_{k}} \left(\frac{\pi_{k'}}{\pi_{k} + \pi_{k'}}\right)^{m-x_{k}}\\
+&= \binom{m}{k} \left(\frac{\pi_{k}}{\pi_{k} + \pi_{k'}}\right)^{x_{k}} \left(\frac{\pi_{k'}}{\pi_{k} + \pi_{k'}}\right)^{m-x_{k}}
+\end{align*}
+\begin{align}
+P(X_{k} = x_{k}, X_{k'} = m - x_{k}) &= \frac{n!}{x_{k}!(m-x_{k})!(n-m)!} \pi_{k}^{x_{k}}\pi_{k'}^{m-x_{k}} (1-\pi_{k} - \pi_{k'})^{n-m}\\
+P(X_{k} + X_{k'} = m) &= \frac{n!}{m!(n-m)!} (\pi_{k} + \pi_{k'})^m (1- \pi_{k} - \pi_{k'})^{n-m}
+\end{align}
+\\
+\prob{2} \textbf{Derivation of EM algorithm}\\
+Observed incomplete data: 4 phenotypes - A, B, AB, O. $Y=(Y_{A}, Y_{B}, Y_{AB}, Y_{O}) ~ \sim multinomial(n, \mathbf{p})$, where $\mathbf{p} = (p_{A}=\pi_{A}^2 + 2\pi_{A}\pi_{O}, p_{B}=\pi_{B}^2 + 2\pi_{B}\pi_{O}, p_{AB} = 2\pi_{A}\pi_{B}, p_{O}=\pi_{O}^2) $ \\
+\\
+Unbserved complete data: 6 unphased genotypes - AA, AO, BB, BO, AB, OO. \\
+$X=(X_{AA}, X_{AO}, X_{BB}, X_{BO},X_{AB}, X_{OO}) ~ \sim multinomial(n, \mathbf{p'})$, where $\mathbf{p'} = (\pi_{A}^2, 2\pi_{A}\pi_{O}, \pi_{B}^2, 2\pi_{B}\pi_{O}, 2\pi_{A}\pi_{B}, \pi_{O}^2) $\\
+\\
+For log-likelihood function, first let's look at the general log-likelihood function for multinomial distribution.\\
+Likilihood function:
+\begin{align*}
+L(\pi_{1}, \dots, \pi_{K}; n, X_{1}, \dots, X_{K}) = \frac{n!}{\prod_{k=1}^{K} X_{k}!} \prod_{k=1}^{K}\pi_{k}^{X_{k}}
+\end{align*}
+Log-Likilihood function:
+\begin{align*}
+l(\pi_{1}, \dots, \pi_{K}; n, X_{1}, \dots, X_{K}) = \log(\frac{n!}{\prod_{k=1}^{K} X_{k}!}) + \sum_{k=1}^{K} X_{k} \log \pi_{k}
+\end{align*}
+Since the first term in the above equation doesn't involve $\pi_{k}s$. We can ignore it and re-write our log-likelihood function as follows:\\
+\begin{align*}
+l(\pi_{1}, \dots, \pi_{K}; n, X_{1}, \dots, X_{K}) = \sum_{k=1}^{K} X_{k} \log \pi_{k}
+\end{align*}
+Now, if we plug in \textbf{p} for the corresponding data structure into the log-likelihood function, we will have:\\
+\textbf{Observed incomplete data structure log-likelihood:}
+\begin{align*}
+l(\mathbf{p}; n, Y_{A}, Y_{B}, Y_{AB}, Y_{O}) &= Y_{A} \log (\pi_{A}^2 + 2\pi_{A}\pi_{O}) + Y_{B} \log (\pi_{B}^2 + 2\pi_{B}\pi_{O}) + Y_{AB} \log (2\pi_{A}\pi_{B}) + Y_{O} \log (\pi_{O}^2)\\
+&=Y_{A} \log (\pi_{A}^2 + 2\pi_{A}\pi_{O}) + Y_{B} \log (\pi_{B}^2 + 2\pi_{B}\pi_{O}) + Y_{AB} \log (\pi_{A}\pi_{B}) + Y_{O} \log (\pi_{O}^2)
+\end{align*}
+\textbf{Unobserved complete data structure log-likelihood:}
+\begin{align*}
+l(\mathbf{p'}; n, X_{AA}, X_{AO}, X_{BB}, X_{BO},X_{AB}, X_{OO}) &= X_{AA} \log (\pi_{A}^2) + X_{AO} \log (2\pi_{A}\pi_{O}) + X_{BB} \log (\pi_{B}^2)+ X_{BO} \log (2\pi_{B}\pi_{O}) \\
+&+ X_{AB} \log (2\pi_{A}\pi_{B}) + X_{OO} \log (\pi_{O}^2)\\
+&= X_{AA} \log (\pi_{A}^2) + X_{AO} \log (\pi_{A}\pi_{O}) + X_{BB} \log (\pi_{B}^2)+X_{BO} \log (\pi_{B}\pi_{O})\\ 
+&+ X_{AB} \log (\pi_{A}\pi_{B}) + X_{OO} \log (\pi_{O}^2)
+\end{align*}
+The unobserved complete data structure log-likelihood is more tractable than observed incomplete data structure log-likelihood.\\
+\textbf{Main EM Q-function} Here $\psi' = (\pi_{A}', \pi_{B}', \pi_{O}')$, $\psi  = (\pi_{A}, \pi_{B}, \pi_{O})$. Also, $Y_{A}=X_{AA}+X_{AO}, Y_{B}=X_{BB}+X_{BO}, Y_{AB}=X_{AB}, Y_{O}=X_{OO}$\\
+\begin{align*}
+Q(\psi'|\psi) &= E[logf(X;\psi') | Y=y; \psi]\\
+&= E[ X_{AA} \log (\pi_{A}'^2) + X_{AO} \log (\pi_{A}'\pi_{O}') + X_{BB} \log (\pi_{B}'^2) + X_{BO} \log (\pi_{B}'\pi_{O}') + X_{AB} \log (\pi_{A}'\pi_{B}') \\
+& + X_{OO} \log (\pi_{O}'^2) | Y_{A}=X_{AA} + X_{AO}, Y_{B} = X_{BB} + X_{BO},Y_{AB}=X_{AB}, Y_{O}=X_{OO}, \pi_{A}, \pi_{B}, \pi_{O}]\\
+&= \log (\pi_{A}'^2) E(X_{AA}|Y_{A}=X_{AA} + X_{AO}, \pi_{A}, \pi_{B}, \pi_{O})
++ \log (\pi_{A}'\pi_{O}')E(X_{AO}|Y_{A}=X_{AA} + X_{AO}, \pi_{A}, \pi_{B}, \pi_{O}) \\ 
+&+ \log (\pi_{B}'^2) E(X_{BB}|Y_{B}=X_{BB} + X_{BO}, \pi_{A}, \pi_{B}, \pi_{O}) 
++ \log (\pi_{B}'\pi_{O}') E(X_{BO}|Y_{B}=X_{BB} + X_{BO}, \pi_{A}, \pi_{B}, \pi_{O})\\
+&+ Y_{AB} \log (\pi_{A}'\pi_{B}') + Y_{O}\log (\pi_{O}'^2)
+\end{align*}
+\\
+\textbf{E-step:}
+\begin{align*}
+Q(\psi'|\psi) =& Y_{A} \frac{\pi_{A}^2}{\pi_{A}^2 + 2\pi_{A}\pi_{O}} 2 \log (\pi_{A}') + Y_{A} \frac{2\pi_{A}\pi_{O}}{\pi_{A}^2 + 2\pi_{A}\pi_{O}} \log (\pi_{A}'\pi_{O}')+ Y_{B} \frac{\pi_{B}^2}{\pi_{B}^2 + 2\pi_{B}\pi_{O}} 2\log (\pi_{B}')\\
+&+ Y_{B} \frac{2\pi_{B}\pi_{O}}{\pi_{B}^2 + 2\pi_{B}\pi_{O}} \log (\pi_{B}'\pi_{O}') + Y_{AB} \log (\pi_{A}'\pi_{B}') + Y_{O}2\log (\pi_{O}')\\
+=& Y_{A} \frac{\pi_{A}^2}{\pi_{A}^2 + 2\pi_{A}\pi_{O}} 2 \log (\pi_{A}') + Y_{A} \frac{2\pi_{A}\pi_{O}}{\pi_{A}^2 + 2\pi_{A}\pi_{O}} (\log (\pi_{A}') + \log(\pi_{O}'))+ Y_{B} \frac{\pi_{B}^2}{\pi_{B}^2 + 2\pi_{B}\pi_{O}} 2\log (\pi_{B}')\\
+&+ Y_{B} \frac{2\pi_{B}\pi_{O}}{\pi_{B}^2 + 2\pi_{B}\pi_{O}} (\log (\pi_{B}')+ \log(\pi_{O}')) + Y_{AB} (\log (\pi_{A}')+\log(\pi_{B}')) + 2Y_{O}\log (\pi_{O}')\\
+=& Y_{A} \frac{2\pi_{A}^2}{\pi_{A}^2 + 2\pi_{A}\pi_{O}} \log (\pi_{A}') 
+   + Y_{A} \frac{2\pi_{A}\pi_{O}}{\pi_{A}^2 + 2\pi_{A}\pi_{O}} \log (\pi_{A}')
+   + Y_{AB} \log (\pi_{A}')\\
+&+ Y_{B} \frac{2\pi_{B}^2}{\pi_{B}^2 + 2\pi_{B}\pi_{O}}\log (\pi_{B}')
++ Y_{B} \frac{2\pi_{B}\pi_{O}}{\pi_{B}^2 + 2\pi_{B}\pi_{O}} \log (\pi_{B}')
++ Y_{AB} \log(\pi_{B}')\\
+&+ Y_{A} \frac{2\pi_{A}\pi_{O}}{\pi_{A}^2 + 2\pi_{A}\pi_{O}} \log(\pi_{O}')
++ Y_{B} \frac{2\pi_{B}\pi_{O}}{\pi_{B}^2 + 2\pi_{B}\pi_{O}} \log(\pi_{O}')
++ 2Y_{O}\log (\pi_{O}')\\
+=& (Y_{A} \frac{2\pi_{A}^2}{\pi_{A}^2 + 2\pi_{A}\pi_{O}}  
+   + Y_{A} \frac{2\pi_{A}\pi_{O}}{\pi_{A}^2 + 2\pi_{A}\pi_{O}} 
+   + Y_{AB}) \log (\pi_{A}')\\
+&+ (Y_{B} \frac{2\pi_{B}^2}{\pi_{B}^2 + 2\pi_{B}\pi_{O}}
++ Y_{B} \frac{2\pi_{B}\pi_{O}}{\pi_{B}^2 + 2\pi_{B}\pi_{O}} 
++ Y_{AB}) \log(\pi_{B}')\\
+&+ (Y_{A} \frac{2\pi_{A}\pi_{O}}{\pi_{A}^2 + 2\pi_{A}\pi_{O}} 
++ Y_{B} \frac{2\pi_{B}\pi_{O}}{\pi_{B}^2 + 2\pi_{B}\pi_{O}} 
++ 2Y_{O})\log (\pi_{O}')\\
+\end{align*}
+\textbf{M-step:}\\
+Let $$Z_{A} = Y_{A} \frac{2\pi_{A}^2}{\pi_{A}^2 + 2\pi_{A}\pi_{O}}  
+   + Y_{A} \frac{2\pi_{A}\pi_{O}}{\pi_{A}^2 + 2\pi_{A}\pi_{O}} 
+   + Y_{AB}$$ 
+
+$$Z_{B} = Y_{B} \frac{2\pi_{B}^2}{\pi_{B}^2 + 2\pi_{B}\pi_{O}}
++ Y_{B} \frac{2\pi_{B}\pi_{O}}{\pi_{B}^2 + 2\pi_{B}\pi_{O}} 
++ Y_{AB}$$
+
+$$ Z_{O} = Y_{A} \frac{2\pi_{A}\pi_{O}}{\pi_{A}^2 + 2\pi_{A}\pi_{O}} 
++ Y_{B} \frac{2\pi_{B}\pi_{O}}{\pi_{B}^2 + 2\pi_{B}\pi_{O}} 
++ 2Y_{O}$$
+
+$$\sum_{i=1}^3 Z_{i} = 2n $$
+Then, the main Q-function becomes a multinomial log-likelihood:
+$Q(\psi'|\psi) = Z_{A}\log (\pi_{A}') + Z_{B}\log(\pi_{B}') + Z_{O}\log (\pi_{O}')$\\
+MLE of multinomial:
+$$ \hat{\pi_{A}'} = \frac{Z_{A}}{2n} $$
+$$ \hat{\pi_{B}'} = \frac{Z_{B}}{2n} $$
+$$ \hat{\pi_{O}'} = \frac{Z_{O}}{2n} $$
+\\
+\prob{3} \textbf{Software implementation of EM algorithm}\\
+<<p3, echo=TRUE,cache=FALSE,fig.width=5, fig.height=5, out.width='0.7\\linewidth'>>=
+
+EM = function(obsCount, start, stopping){
+  
+  obsLoglik = function(P, Y){
+    Ya = Y[1]
+    Yb = Y[2]
+    Yab = Y[3]
+    Yo = Y[4]
+    Pa = P[1]
+    Pb = P[2]
+    Po = P[3]
+    LogLik = Ya*log(Pa^2 + 2*Pa*Po) + Yb*log(Pb^2 + 2*Pb*Po) + Yab*log(Pa*Pb) + Yo*log(Po^2)
+    return(LogLik)
+  }
+  
+  Q.mle = function(P, Y){
+    Ya = Y[1]
+    Yb = Y[2]
+    Yab = Y[3]
+    Yo = Y[4]
+    Pa = P[1]
+    Pb = P[2]
+    Po = P[3]
+    
+    Za = Ya*((2*Pa^2)/(Pa^2 + 2*Pa*Po)) + Ya*((2*Pa*Po)/(Pa^2 + 2*Pa*Po)) + Yab
+    Zb = Yb*((2*Pb^2)/(Pb^2 + 2*Pb*Po)) + Yb*((2*Pb*Po)/(Pb^2 + 2*Pb*Po)) + Yab
+    Zo = Ya*((2*Pa*Po)/(Pa^2 + 2*Pa*Po)) + Yb*((2*Pb*Po)/(Pb^2 + 2*Pb*Po)) + 2*Yo
+    
+    Pa.new = Za/(2*sum(Y))
+    Pb.new = Zb/(2*sum(Y))
+    Po.new = Zo/(2*sum(Y))
+    
+    P.new = c(Pa.new, Pb.new, Po.new)
+    return(P.new)
+  }
+  # maximize Q while it doesn't met the stoping rules
+  if (stopping == "MLE"){
+    P.new = Q.mle(start,obsCount)
+    P = start
+    iteration=cbind(matrix(P.new, nrow=1), obsLoglik(P.new,obsCount))
+    while(abs(obsLoglik(P.new, obsCount) - obsLoglik(P,obsCount)) > 0.0001){
+      P = P.new
+      P.new = Q.mle(P,obsCount)
+      newRow = cbind(matrix(P.new, nrow=1), obsLoglik(P.new,obsCount))
+      iteration = rbind(iteration, newRow)
+    }
+    colnames(iteration) = c("candidateMLE_Pa","candidateMLE_Pb","candidateMLE_Po", "obsLogLik")
+    result = list("candidateMLE" = P.new, "obsLogLik" = obsLoglik(P.new, obsCount), "iter" = iteration)
+    return(result)
+  }
+  
+  else if (stopping == "FixMag"){
+    P.new = Q.mle(start,obsCount)
+    P = start
+    iteration=cbind(matrix(P.new, nrow=1), obsLoglik(P.new,obsCount))
+    while(dist(rbind(P,P.new), method = "euclidean") > 0.0001){
+      P = P.new
+      P.new = Q.mle(P,obsCount)
+      newRow = cbind(matrix(P.new, nrow=1), obsLoglik(P.new,obsCount))
+      iteration = rbind(iteration, newRow)
+    }
+    colnames(iteration) = c("candidateMLE_Pa","candidateMLE_Pb","candidateMLE_Po", "obsLogLik")
+    result = list("candidateMLE" = P.new, "obsLogLik" = obsLoglik(P.new, obsCount), "iter" = iteration)
+    return(result)
+  }
+  
+  else if (stopping == "FlexThres"){
+    P.new = Q.mle(start,obsCount)
+    P = start
+    iteration=cbind(matrix(P.new, nrow=1), obsLoglik(P.new,obsCount))
+    while(abs(P.new[1]-P[1]) > 0.0001*(abs(P[1])+0.00001) & abs(P.new[2]-P[2]) > 0.0001*(abs(P[2])+0.00001) & abs(P.new[3]-P[3]) > 0.0001*(abs(P[3])+0.00001)  ){
+      P = P.new
+      P.new = Q.mle(P,obsCount)
+      newRow = cbind(matrix(P.new, nrow=1), obsLoglik(P.new,obsCount))
+      iteration = rbind(iteration, newRow)
+    }
+    colnames(iteration) = c("candidateMLE_Pa","candidateMLE_Pb","candidateMLE_Po", "obsLogLik")
+    result = list("candidateMLE" = P.new, "obsLogLik" = obsLoglik(P.new, obsCount), "iter" = iteration)
+    return(result)
+  }
+  
+}
+@
+
+
+\prob{4} \textbf{Application of EM algorithm}
+<<p4, echo=TRUE,cache=FALSE,fig.width=5, fig.height=5, out.width='0.7\\linewidth'>>=
+# here P only contain Pa, Pb two parameters
+negobsLoglik = function(P, Y){
+    Ya = Y[1]
+    Yb = Y[2]
+    Yab = Y[3]
+    Yo = Y[4]
+    Pa = P[1]
+    Pb = P[2]
+    Po = 1-Pa-Pb
+    if (Pa + Pb < 1){
+      LogLik = -(Ya*log(Pa^2 + 2*Pa*Po) + Yb*log(Pb^2 + 2*Pb*Po) + Yab*log(Pa*Pb) + Yo*log(Po^2))
+    }
+    else{
+      LogLik = Inf
+    }
+    return(LogLik)
+  }
+
+obsLoglik2 = function(Pa,Pb, count){
+    Ya = count[1]
+    Yb = count[2]
+    Yab = count[3]
+    Yo = count[4]
+    Po = 1-Pa-Pb
+    if (Pa + Pb < 1){
+      LogLik = Ya*log(Pa^2 + 2*Pa*Po) + Yb*log(Pb^2 + 2*Pb*Po) + Yab*log(Pa*Pb) + Yo*log(Po^2)
+    }
+    else{
+      LogLik = - Inf
+    }
+    return(LogLik)
+  }
+# Apply the EM algorithm, and trace the progress of the EM algorithm
+start = c(0.0001,0.0001,0.0001)
+obsCount = c(186, 38, 13, 284)
+
+EM_result = EM(obsCount, start, stopping="FlexThres")
+EM_result
+
+# graphical summaries 
+trace = EM_result$iter
+
+# Pa + Pb + Po = 1, Pa + Pb < 1
+Pa = seq(0,1, length.out=500)
+Pb = seq(0,1, length.out=500)
+z = outer(Pa,Pb, FUN=obsLoglik2, count = obsCount)
+contour(Pa,Pb,z, nlevels=50, xlab="Pa", ylab="Pb", main="Observed data Log-Likelihood contour plot")
+abline(v=EM_result$candidateMLE[1], h=EM_result$candidateMLE[2], col="red",xlab="EM MLE Pa" )
+axis(3, at=EM_result$candidateMLE[1], labels="EM MLE", cex.axis=0.5)
+axis(4, at=EM_result$candidateMLE[2], labels="EM MLE", cex.axis=0.5)
+
+# Comment on the EM algorithm performance
+system.time(EM(obsCount, start, stopping="FlexThres"))
+system.time(em2 <-EM(obsCount, c(0.05,0.3,0.001), stopping="FlexThres"))
+system.time(em3 <-EM(obsCount, c(0.5,0.8,0.1), stopping="FlexThres"))
+system.time(em4 <-EM(obsCount, c(0.8,0.03,0.05), stopping="FlexThres"))
+system.time(em5 <-EM(obsCount, c(0.6,0.5,0.01), stopping="FlexThres"))
+
+EM_result$candidateMLE
+em2$candidateMLE
+em3$candidateMLE
+em4$candidateMLE
+em5$candidateMLE
+# Comment: The time for running the EM algorithm (rate of convergence) doesn't differ much when 
+#having different starting values. Also, the result obtained by these different start values are 
+#very identical. Therefore, the performance of the EM algorithm is really good.
+
+# compare the result from my implementation of EM algorithm and the one from optim
+start2 = c(0.0001, 0.0001)
+optim(start2, negobsLoglik, Y = obsCount)$par
+# Po
+1 - sum(optim(start2, negobsLoglik, Y = obsCount)$par)
+# The results are identical
+@
+
+\end{document}
