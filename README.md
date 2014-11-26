@@ -28,11 +28,15 @@ This is a class I taught with Toki Sherbakov. We wrote the solution for the home
 
 Stat230A: Linear Models (Classes Taken)
 ---------------------------------------
-* HuXiangyuHW1.R: Introduction
-* HuXiangyuHW2.R:
-* HuXiangyuHW2.R:
-* HuXiangyuHW2.R:
-* HuXiangyuHW2.R:
-* HuXiangyuHW2.R:
-* HuXiangyuHW2.R:
-* HuXiangyuHW2.R:
+* HuXiangyuHW1.R: Simple introduction
+* HuXiangyuHW2.R: Simple plotting and matrix multiplication review
+* HuXiangyuHW3.R: OLS Simulation
+* HuXiangyuHW4.R: GLS, correlated errors
+* HuXiangyuHW5.R: Path Models
+* HuXiangyuHW6.R: MLE, part 1
+* HuXiangyuHW7.R: MLE, part 2, and logistic regression (Lab11,& 12 from Statistical Models: Theory and Practice by Friedman, D.A.) 
+* HuXiangyuHW8.R: Bootstrap
+* HuXiangyuHW9.R: Simultaneous Equations
+* HuXiangyuHW10.R: Model Selection, Cross Validation
+* HuXiangyuHW11.R: Model Selection, Principal Components
+* HuXiangyuHW12.R: Ridge Regression, LASSO, Regression Trees
