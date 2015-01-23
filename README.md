@@ -20,7 +20,7 @@ PH240C: Computational Biology (Classes Taken)
 
 PH245: Introduction to Multivariate Statistics (Classes Taught)
 ---------------------------------------------------------------
-This is a class I taught with Toki Sherbakov. We wrote the solution for the homework together. All the following files are write-ups of solutions to students' homework, including codes, output and interpretations, which were posted on class website.
+This is a class I taught with Toki Sherbakov(a fellow classmate). We wrote the solution for the homework together. All the following files are write-ups of solutions to students' homework, including codes, output and interpretations, which were posted on class website.
 * HW1Solution.pdf: Repeated measures, Multivariate two sample comparison, One-way MANOVA, Two-way MANOVA
 * HW2\_Solution.pdf: Linear regression, Logistics regression, LASSO.
 * HW3\_Solution.pdf: PCA, Factor Analysis
