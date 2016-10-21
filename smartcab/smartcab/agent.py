@@ -1,3 +1,4 @@
+import os
 import random
 from collections import OrderedDict
 
@@ -9,6 +10,7 @@ from environment import Agent, Environment
 from planner import RoutePlanner
 from simulator import Simulator
 
+SAVE_PATH = '/Users/huxiangyu/Dropbox/study/udacity/MLND/projects/smartcab/output/initial10/'
 
 class LearningAgent(Agent):
     """An agent that learns to drive in the smartcab world."""
@@ -49,10 +51,12 @@ class LearningAgent(Agent):
         # TODO: Select action according to your policy
         # first, it chooses an action randomly
         action = random.choice([None, 'forward', 'left', 'right'])
+
         # then if the q-table has q-values for the state and has at least two actions associated with the state, choose the action that has the highest reward
         if self.q_table:
             candidate_keys = [key for key in self.q_table.keys() if self.state in key]
-            if len(candidate_keys) >= 2:
+            # for one state, there could be 4 actions associated, need to make sure all 4 actions are recorded in the q table before using it
+            if len(candidate_keys) == 4:
                 candidate_dict = {k:v for k,v in self.q_table.items() if k in candidate_keys}
                 selected_key = max(candidate_keys, key=lambda key: self.q_table[key])
                 action = selected_key[1]
@@ -112,7 +116,7 @@ def run():
     pool.close()
     # NEED TO CHANGE FOR FINAL SUBMISSION: run for a specified number of trials
     import pickle
-    with open('output/initial10/result_list.pkl', 'wb') as outfile:
+    with open(os.path.join(SAVE_PATH, 'result_list.pkl'), 'wb') as outfile:
         pickle.dump(result_list, outfile)
 
     return result_list
@@ -166,7 +170,7 @@ def evaluation(eval_results, index):
     merge_list = [success_count_df, time_used_normalized_df, pos_reward_df, neg_reward_df, total_reward_normalized_df]
     merged_result = reduce(lambda left, right: left.merge(right, on='params'), merge_list)
 
-    merged_result.to_csv('output/initial10/summary_result_%s.csv' % index, index=False)
+    merged_result.to_csv(os.path.join(SAVE_PATH, 'summary_result_%s.csv' % index), index=False)
     return merged_result
 
 def main():
@@ -181,7 +185,7 @@ def main():
     all_merged_result = pd.concat(merged_result_list)
     final_performance_across_100simulation_100trips = all_merged_result.groupby('params').mean()
     # NEED TO CHANGE FOR FINAL SUBMISSION:
-    final_performance_across_100simulation_100trips.to_csv('output/initial10/final_performance_across_10_simulation_last20trips.csv')
+    final_performance_across_100simulation_100trips.to_csv(os.path.join(SAVE_PATH, 'final_performance_across_10_simulation_last20trips.csv'))
 
 if __name__ == '__main__':
     main()
