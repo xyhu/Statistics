@@ -41,31 +41,29 @@ class LearningAgent(Agent):
         deadline = self.env.get_deadline(self)
 
         # TODO: Update state
-        left_new = 'not_forward' if inputs['left'] != 'forward' else inputs['left']
-        oncoming_new = 'forward_right' if inputs['oncoming'] not in ('left', None) else 'not_forward_right'
-        deadline_short = 0
-        if deadline <= 5:
-            deadline_short = 1
-        self.state = (inputs['light'], left_new, oncoming_new, deadline_short)
+        self.state = (inputs['light'], inputs['oncoming'], inputs['left'], inputs['right'], self.next_waypoint)
 
         # TODO: Select action according to your policy
-        # first, it chooses an action randomly
+        # FIRST, it chooses an action randomly
         action = random.choice([None, 'forward', 'left', 'right'])
 
-        # then if the q-table has q-values for the state and has at least two actions associated with the state, choose the action that has the highest reward
+        # SECOND, IF the q-table has q-values for the state and all 4 actions
+        # then choose the action that return highest q-value
         if self.q_table:
+            # obtain state_action_key for the current state currently stored in q tables
             candidate_keys = [key for key in self.q_table.keys() if self.state in key]
             # for one state, there could be 4 actions associated, need to make sure all 4 actions are recorded in the q table before using it
             if len(candidate_keys) == 4:
                 candidate_dict = {k:v for k,v in self.q_table.items() if k in candidate_keys}
+                # choose the action that has highest q value for the state
                 selected_key = max(candidate_keys, key=lambda key: self.q_table[key])
                 action = selected_key[1]
-                print "candidate_keys = {}, candidate_dict = {}".format(candidate_keys, candidate_dict)
+                # print "candidate_keys = {}, candidate_dict = {}".format(candidate_keys, candidate_dict)
 
         # Execute action and get reward
         reward = self.env.act(self, action)
 
-        # TODO: Learn policy based on state, action, reward, deadline
+        # TODO: Learn policy based on state, action, reward
         state_action_key = (self.state, action)
         # for initial
         if state_action_key not in self.q_table.keys():
@@ -79,7 +77,7 @@ class LearningAgent(Agent):
         # store current to use as previous for the next round
         self.previous_state_action = state_action_key
 
-        print "LearningAgent.update(): deadline = {}, inputs = {}, action = {},reward = {}".format(deadline, inputs, action, reward)  # [debug]
+        # print "LearningAgent.update(): deadline = {}, inputs = {}, action = {},reward = {}".format(deadline, inputs, action, reward)  # [debug]
 
         if self.result_trial_index not in self.results.keys():
             self.results[self.result_trial_index] = OrderedDict()
@@ -110,19 +108,17 @@ def run():
     """Run the agent for a finite number of trials."""
     # eval_results = {} # key = (alpha, gamma)
     # Set up environment and agent
-    seq_0_1 = np.linspace(0.1, 0.9, 9)
+    seq_0_1 = np.linspace(0.1, 0.5, 5)
+    seq_0_2 = np.linspace(0.1, 0.9, 9)
     # seq_0_1 = [0.5] # NEED TO CHANGE FOR FINAL SUBMISSION: run for a specified number of trials
-    result_list = pool.map(sub_run, ((alpha, gamma) for alpha in seq_0_1 for gamma in seq_0_1))
+    result_list = pool.map(sub_run, ((alpha, gamma) for alpha in seq_0_1 for gamma in seq_0_2))
     pool.close()
-    # NEED TO CHANGE FOR FINAL SUBMISSION: run for a specified number of trials
-    import pickle
-    with open(os.path.join(SAVE_PATH, 'result_list.pkl'), 'wb') as outfile:
-        pickle.dump(result_list, outfile)
 
     return result_list
 
 def evaluation(eval_results, index):
     success_count = OrderedDict()
+    total_eval_trips = OrderedDict()
     time_used_normalized = OrderedDict()
     pos_reward = OrderedDict()
     neg_reward = OrderedDict()
@@ -136,9 +132,10 @@ def evaluation(eval_results, index):
             neg_reward_list = []
             total_reward_normalized_list = []
             for trial, trial_result in params_result.iteritems():
-                # evaluate on only the later 20 trips because the first 80 agent is learning
+                # evaluate on only the later 100 trips because the first 900 agent is learning
                 if trial >= 900:
                     trial_result_df = pd.DataFrame(trial_result).transpose()
+                    total_eval_trips[params] = 1 if params not in total_eval_trips.keys() else total_eval_trips[params] + 1
                     # print trial_result_df
                     if trial_result_df.iloc[-1]['deadline'] >= 0 and trial_result_df.iloc[-1]['reward'] >= 10:
                         # distance * 5 = deadline (environment.py line 97)
@@ -163,29 +160,29 @@ def evaluation(eval_results, index):
                 total_reward_normalized[params] = np.mean(total_reward_normalized_list)
 
     success_count_df = pd.DataFrame({'params': success_count.keys(), 'num_successes': success_count.values()})
+    total_eval_trips_df = pd.DataFrame({'params': total_eval_trips.keys(), 'num_eval_trips': total_eval_trips.values()})
     time_used_normalized_df = pd.DataFrame({'params': time_used_normalized.keys(), 'average_time_used_normalized': time_used_normalized.values()}) # for success trials
     pos_reward_df = pd.DataFrame({'params': pos_reward.keys(), 'average_pos_reward': pos_reward.values()}) # for success trials
     neg_reward_df = pd.DataFrame({'params': neg_reward.keys(), 'average_neg_reward': neg_reward.values()}) # for success trials
     total_reward_normalized_df = pd.DataFrame({'params': total_reward_normalized.keys(), 'average_total_reward_normalized': total_reward_normalized.values()}) # for success trials
-    merge_list = [success_count_df, time_used_normalized_df, pos_reward_df, neg_reward_df, total_reward_normalized_df]
+    merge_list = [success_count_df, total_eval_trips_df, time_used_normalized_df, pos_reward_df, neg_reward_df, total_reward_normalized_df]
     merged_result = reduce(lambda left, right: left.merge(right, on='params'), merge_list)
-
+    merged_result.loc[:, 'success_rate'] = merged_result.loc[:, 'num_successes'] * 1.0 / merged_result.loc[:, 'num_eval_trips']
     merged_result.to_csv(os.path.join(SAVE_PATH, 'summary_result_%s.csv' % index), index=False)
     return merged_result
 
 def main():
     merged_result_list = []
     # NEED TO CHANGE FOR FINAL SUBMISSION:
-    for i in xrange(10):
-    # for i in xrange(30, 50):
+    for i in xrange(100):
         eval_results = run()
         merged_result = evaluation(eval_results, i)
-        merged_result_list.append(merged_result.loc[:, ['params', 'num_successes', 'average_time_used_normalized', 'average_total_reward_normalized']])
+        merged_result_list.append(merged_result.loc[:, ['params', 'success_rate', 'average_time_used_normalized', 'average_total_reward_normalized']])
 
     all_merged_result = pd.concat(merged_result_list)
     final_performance_across_100simulation_100trips = all_merged_result.groupby('params').mean()
     # NEED TO CHANGE FOR FINAL SUBMISSION:
-    final_performance_across_100simulation_100trips.to_csv(os.path.join(SAVE_PATH, 'final_performance_across_10_simulation_last20trips.csv'))
+    final_performance_across_100simulation_100trips.to_csv(os.path.join(SAVE_PATH, 'final_performance_across_100_simulation_last100trips.csv'))
 
 if __name__ == '__main__':
     main()
