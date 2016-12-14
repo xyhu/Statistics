@@ -11,7 +11,7 @@ import conf
 
 #### Read in Data
 data = pd.read_csv(os.path.join(conf.DATA_PATH, 'train.csv'))
-
+test_data = pd.read_csv(os.path.join(conf.DATA_PATH, 'test.csv'))
 #### Exploration
 # check if ID is unique identifier
 data.id.nunique() == len(data)
@@ -100,3 +100,17 @@ for i in range(99):
 # benchmark cacluation: null model,using average as prediction
 avg_loss = np.mean(loss)
 np.mean(abs(loss - avg_loss))
+
+test_pred = pd.DataFrame({'id': test_data.id, 'loss': avg_loss})
+test_pred.to_csv(os.path.join(conf.DATA_PATH, 'test_pred_null.csv'), index=False)
+
+# Cv mae plot
+num_predictors = 20
+cv_mae = pd.read_csv(os.path.join(conf.DATA_PATH, 'cv_mae_{}.csv'.format(num_predictors)), index_col='Repetition')
+cv_mae_sd = cv_mae.std()
+cv_mae_mean = cv_mae.mean()
+sns.set_style("whitegrid")
+sns.barplot(data=cv_mae)
+plt.title("Comparison of Methods using 100 Principal Components with 5-fold Cross Validation")
+plt.ylabel("Average of cross-validated MAE over 10 times of sampling")
+plt.savefig(os.path.join(conf.DATA_PATH, 'cv_mae_comparison_{}.png'.format(num_predictors)))

@@ -17,23 +17,31 @@ import conf
 LOG = logging.getLogger(__name__)
 
 class Preprocess(object):
-    def __init__(self):
-        self.data = pd.read_csv(os.path.join(conf.DATA_PATH, 'train.csv'))
-        self.data = self.data.sample(frac=0.2).reset_index()
+    def __init__(self, data_type='train', frac=0.2):
+        self.data_type = data_type
+        if self.data_type == 'train':
+            self.data = pd.read_csv(os.path.join(conf.DATA_PATH, 'train.csv'))
+            self.data = self.data.sample(frac=frac).reset_index()
+            self.loss = self.data.loc[:, 'loss']
+        else:
+            self.data = pd.read_csv(os.path.join(conf.DATA_PATH, 'test.csv'))
+
         self.cat_names = [cat for cat in self.data.columns.values if 'cat' in cat]
         self.cont_names = [cont for cont in self.data.columns.values if 'cont' in cont]
         self.data_dummies = pd.get_dummies(self.data[self.cat_names])
-        self.loss = self.data.loc[:, 'loss']
         self.data_cont = self.data.loc[:, self.cont_names]
         self.X = pd.concat([self.data_cont, self.data_dummies], axis=1)
 
 
 
     def pca_decomposition(self):
-        pca = PCA(n_components=100, random_state=0)
+        pca = PCA(n_components=100, random_state=0, svd_solver='arpack', tol=0.001)
         pca.fit(self.X)
         self.new_X = pd.DataFrame(pca.transform(self.X))
-        return self.new_X, self.loss
+        if self.data_type == 'train':
+            return self.new_X, self.loss
+        else:
+            return self.new_X, self.data.id
 
 
     def kfold_cross_validation_split(self, n_splits=5):
@@ -110,7 +118,7 @@ class Models(object):
                 model = BaggingRegressor(random_state=0, max_samples=0.8, max_features=0.5, n_jobs=-1)
             elif method == 'GradientBoostingRegressor':
                 params = self.tuning_gradient_boosting(X_train, y_train)
-                model = GradientBoostingRegressor(loss = 'lad', max_depth=params[0], n_estimators=params[1], random_state=0) #TODO: CV to tune paramters
+                model = GradientBoostingRegressor(loss = 'lad', max_depth=params[0], n_estimators=params[1], random_state=0)
 
             model.fit(X_train, y_train)
             y_pred = model.predict(first_d_X.iloc[test_index])
@@ -129,9 +137,26 @@ class Models(object):
         LOG.info(self.mae_df.std())
 
 
+class Prediction(object):
+    def __init__(self, frac=0.2):
+        self.train_X, self.train_loss = Preprocess(frac=frac).pca_decomposition()
+        self.test_X, self.test_id = Preprocess(data_type='test').pca_decomposition()
+
+    def predict(self, num_predictors):
+        params = Models().tuning_gradient_boosting(self.train_X.loc[:, :(num_predictors-1)], self.train_loss)
+        LOG.info('parameter tuned: {}'.format(params))
+        model = GradientBoostingRegressor(loss = 'lad', max_depth=params[0], n_estimators=params[1], random_state=0)
+        model.fit(self.train_X.loc[:, :(num_predictors-1)], self.train_loss)
+        LOG.info('model fitted')
+        y_pred = model.predict(self.test_X.loc[:, :(num_predictors-1)])
+        LOG.info('prediction calculated')
+        test_pred = pd.DataFrame({'id': self.test_id, 'loss': y_pred})
+        test_pred.to_csv(os.path.join(conf.DATA_PATH, 'test_pred_{}.csv'.format(num_predictors)), index=False)
+
+
+
 def main(num_predictors):
-    result = []
-    n_sim = 20
+    n_sim = 10
     if not isinstance(num_predictors, int):
         num_predictors = int(num_predictors)
     start = int(time.time())
@@ -140,9 +165,7 @@ def main(num_predictors):
         modeler = Models()
         LOG.info("Modeler initialized")
         modeler.fit(num_predictors)
-        result.append(modeler.cv_mae.to_frame())
 
-    pd.concat(result).to_csv(os.path.join(conf.DATA_PATH, 'cv_mae_simulation{}_{}.csv'.format(n_sim, num_predictors)))
 
     end = time.time()
     time_used = (end - start)/60.0
@@ -154,7 +177,15 @@ def main(num_predictors):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('num_predictors', help='Select number of principal components')
+    parser.add_argument('stage', choices=['build', 'predict'], help='Select the stage: build, predict')
     args = parser.parse_args()
-    logging.basicConfig(filename=os.path.join(conf.DATA_PATH, 'capstone_%s.log' % args.num_predictors), level=logging.INFO, filemode='w')
 
-    main(args.num_predictors)
+    if args.stage == 'build':
+        logging.basicConfig(filename=os.path.join(conf.DATA_PATH, 'capstone_%s.log' % args.num_predictors), level=logging.INFO, filemode='w')
+        main(args.num_predictors)
+    else:
+        logging.basicConfig(filename=os.path.join(conf.DATA_PATH, 'capstone_predict.log'), level=logging.INFO, filemode='w')
+        if not isinstance(args.num_predictors, int):
+            num_predictors = int(args.num_predictors)
+
+        Prediction(0.5).predict(num_predictors)
